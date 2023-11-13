@@ -147,6 +147,56 @@ def update_balance(account_number, new_balance):
         cursor.close()
         conn.close()
 
+def delete_customer(customer_id):
+    # Connect to the SQLite database
+    conn = sqlite3.connect('bank.db')  # Replace 'your_database.db' with your SQLite database file
+
+    # Create a cursor to execute SQL commands
+    cursor = conn.cursor()
+
+    try:
+        # Delete the customer
+        delete_query = "DELETE FROM CUSTOMER WHERE customer_id = ?"
+        cursor.execute(delete_query, (customer_id,))
+
+        # Commit the transaction
+        conn.commit()
+        print(f"Customer ID {customer_id} deleted from CUSTOMER table.")
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error deleting customer: {e}")
+
+    finally:
+        # Close the cursor and the database connection
+        cursor.close()
+        conn.close()
+
+def delete_customer_accounts(customer_id):
+    # Connect to the SQLite database
+    conn = sqlite3.connect('bank.db')  # Replace 'your_database.db' with your SQLite database file
+
+    # Create a cursor to execute SQL commands
+    cursor = conn.cursor()
+
+    try:
+        # Delete accounts associated with the customer
+        delete_query = "DELETE FROM ACCOUNT WHERE customer_id = ?"
+        cursor.execute(delete_query, (customer_id,))
+
+        # Commit the transaction
+        conn.commit()
+        print(f"Accounts associated with Customer ID {customer_id} deleted from ACCOUNT table.")
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error deleting customer accounts: {e}")
+
+    finally:
+        # Close the cursor and the database connection
+        cursor.close()
+        conn.close()
+
 # database manipulation code ended
 
 
@@ -418,6 +468,75 @@ def check_credentials(identity, password, choice,
 
     
     return False
+
+def change_pin(customer_id, new_pin):
+    # Connect to the SQLite database
+    conn = sqlite3.connect('bank.db')  # Replace 'your_database.db' with your SQLite database file
+
+    # Create a cursor to execute SQL commands
+    cursor = conn.cursor()
+
+    try:
+        # Update the PIN for the specified customer
+        update_query = "UPDATE CUSTOMER SET pin = ? WHERE customer_id = ?"
+        cursor.execute(update_query, (new_pin, customer_id))
+
+        # Commit the transaction
+        conn.commit()
+        print(f"PIN updated for customer ID {customer_id}.")
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error changing PIN: {e}")
+
+    finally:
+        # Close the cursor and the database connection
+        cursor.close()
+        conn.close()
+
+def change_PIN(identity, new_PIN):
+    change_pin(identity, new_PIN)
+
+    output_message = "PIN changed successfully."
+    customerMenu.printMessage_outside(output_message)
+    print(output_message)
+
+
+def display_account_summary(identity, choice):  # choice 1 for full summary; choice 2 for only account balance.
+    flag = 0
+    customer_database = open("./database/Customer/customerDatabase.txt")
+    output_message = ""
+    for line in customer_database:
+        if identity == line.replace("\n", ""):
+            if choice == 1:
+                output_message += "Account number : " + line.replace("\n", "") + "\n"
+                customer_database.__next__()  # skipping pin
+                output_message += "Current balance : " + customer_database.__next__().replace("\n", "") + "\n"
+                output_message += "Date of account creation : " + customer_database.__next__().replace("\n", "") + "\n"
+                output_message += "Name of account holder : " + customer_database.__next__().replace("\n", "") + "\n"
+                output_message += "Type of account : " + customer_database.__next__().replace("\n", "") + "\n"
+                output_message += "Date of Birth : " + customer_database.__next__().replace("\n", "") + "\n"
+                output_message += "Mobile number : " + customer_database.__next__().replace("\n", "") + "\n"
+                output_message += "Gender : " + customer_database.__next__().replace("\n", "") + "\n"
+                output_message += "Nationality : " + customer_database.__next__().replace("\n", "") + "\n"
+                output_message += "KYC : " + customer_database.__next__().replace("\n", "") + "\n"
+            else:
+                customer_database.readline()  # skipped pin
+                output_message += "Current balance : " + customer_database.readline().replace("\n", "") + "\n"
+            flag = 1
+            break
+
+        else:
+            for index in range(11):
+                fetched_line = customer_database.readline()
+                if fetched_line is not None:
+                    continue
+                else:
+                    break
+    if flag == 0:
+        print("\n# No account associated with the entered account number exists! #")
+    return output_message
+
 class customerMenu:
     def __init__(self, window=None):
         self.master = window
@@ -496,6 +615,8 @@ class customerMenu:
     def checkBalance(self):
         #Eoutput = display_account_summary(customer_accNO, 2)
         #self.printMessage(output)
+        tup=query_row_by_primary_key('ACCOUNT', customer_accNO)
+        print("Your current balance is: ", tup[2])
         print("check balance function called.")
 
     def printMessage(self, output):
@@ -703,7 +824,7 @@ class changePIN:
 
     def submit(self, new_PIN, confirm_new_PIN):
         if new_PIN == confirm_new_PIN and str(new_PIN).__len__() == 4 and new_PIN.isnumeric():
-            #change_PIN(customer_accNO, new_PIN)
+            change_PIN(customer_accNO, new_PIN)
             pass
             self.master.withdraw()
         else:
@@ -718,6 +839,123 @@ class changePIN:
 
     def back(self):
         self.master.withdraw()
+
+class adminMenu:
+    def __init__(self, window=None):
+        self.master = window
+        window.geometry("743x494+329+153")
+        window.minsize(120, 1)
+        window.maxsize(1370, 749)
+        window.resizable(0, 0)
+        window.title("Admin Section")
+        window.configure(background="#ffff00")
+
+        self.Labelframe1 = tk.LabelFrame(window, relief='groove', font="-family {Segoe UI} -size 13 -weight bold",
+                                         foreground="#001c37", text="Select your option", background="#fffffe")
+        self.Labelframe1.place(relx=0.081, rely=0.081, relheight=0.415, relwidth=0.848)
+
+        self.Button1 = tk.Button(self.Labelframe1, activebackground="#ececec", activeforeground="#000000",
+                                 background="#00254a", borderwidth="0", disabledforeground="#a3a3a3",
+                                 font="-family {Segoe UI} -size 11", foreground="#fffffe",
+                                 highlightbackground="#d9d9d9", highlightcolor="black", pady="0",
+                                 text="Close bank account", command=self.closeAccount)
+        self.Button1.place(relx=0.667, rely=0.195, height=34, width=181, bordermode='ignore')
+
+        self.Button2 = tk.Button(self.Labelframe1, activebackground="#ececec", activeforeground="#000000",
+                                 background="#00254a", borderwidth="0", disabledforeground="#a3a3a3",
+                                 font="-family {Segoe UI} -size 11", foreground="#fffffe",
+                                 highlightbackground="#d9d9d9", highlightcolor="black", pady="0",
+                                 text="Create bank account", command=self.createCustaccount)
+        self.Button2.place(relx=0.04, rely=0.195, height=34, width=181, bordermode='ignore')
+
+        self.Button3 = tk.Button(self.Labelframe1, activebackground="#ececec", activeforeground="#000000",
+                                 background="#00254a", borderwidth="0", disabledforeground="#a3a3a3",
+                                 font="-family {Segoe UI} -size 11", foreground="#fffffe",
+                                 highlightbackground="#d9d9d9", highlightcolor="black", pady="0", text="Exit",
+                                 command=self.exit)
+        self.Button3.place(relx=0.667, rely=0.683, height=34, width=181, bordermode='ignore')
+
+        self.Button4 = tk.Button(self.Labelframe1, activebackground="#ececec", activeforeground="#000000",
+                                 background="#00254a", borderwidth="0", disabledforeground="#a3a3a3",
+                                 font="-family {Segoe UI} -size 11", foreground="#fffffe",
+                                 highlightbackground="#d9d9d9", highlightcolor="black", pady="0",
+                                 text="Create admin account", command=self.createAdmin)
+        self.Button4.place(relx=0.04, rely=0.439, height=34, width=181, bordermode='ignore')
+
+        self.Button5 = tk.Button(self.Labelframe1, activebackground="#ececec", activeforeground="#000000",
+                                 background="#00254a", borderwidth="0", disabledforeground="#a3a3a3",
+                                 font="-family {Segoe UI} -size 11", foreground="#fffffe",
+                                 highlightbackground="#d9d9d9", highlightcolor="black", pady="0",
+                                 text="Close admin account", command=self.deleteAdmin)
+        self.Button5.place(relx=0.667, rely=0.439, height=34, width=181, bordermode='ignore')
+
+        self.Button6 = tk.Button(self.Labelframe1, activebackground="#ececec", activeforeground="#000000",
+                                 background="#00254a", foreground="#fffffe", borderwidth="0",
+                                 disabledforeground="#a3a3a3", font="-family {Segoe UI} -size 11",
+                                 highlightbackground="#d9d9d9", highlightcolor="black", pady="0",
+                                 text="Check account summary", command=self.showAccountSummary)
+        self.Button6.place(relx=0.04, rely=0.683, height=34, width=181, bordermode='ignore')
+
+        global Frame1
+        Frame1 = tk.Frame(window, relief='groove', borderwidth="2", background="#fffffe")
+        Frame1.place(relx=0.081, rely=0.547, relheight=0.415, relwidth=0.848)
+
+    def closeAccount(self):
+        #CloseAccountByAdmin(Toplevel(self.master))
+        pass
+
+    def createCustaccount(self):
+        #createCustomerAccount(Toplevel(self.master))
+        pass
+
+    def createAdmin(self):
+        #createAdmin(Toplevel(self.master))
+        pass
+
+    def deleteAdmin(self):
+        #deleteAdmin(Toplevel(self.master))
+        pass
+
+    def showAccountSummary(self):
+        #checkAccountSummary(Toplevel(self.master))
+        pass
+
+    def printAccountSummary(identity):
+        # clearing the frame
+        for widget in Frame1.winfo_children():
+            widget.destroy()
+        # getting output_message and displaying it in the frame
+        output = display_account_summary(identity, 1)
+        output_message = Label(Frame1, text=output, background="#fffffe")
+        output_message.pack(pady=20)
+
+    def printMessage_outside(output):
+        # clearing the frame
+        for widget in Frame1.winfo_children():
+            widget.destroy()
+        # getting output_message and displaying it in the frame
+        output_message = Label(Frame1, text=output, background="#fffffe")
+        output_message.pack(pady=20)
+
+    def exit(self):
+        self.master.withdraw()
+        adminLogin(Toplevel(self.master))
+
+def delete_customer_account(identity, choice):  # choice 1 for admin, choice 2 for customer
+    flag=0
+    delete_customer(identity)
+    delete_customer_accounts(identity)
+    flag+=1
+    if flag == 1:
+        output_message = "Account with account no." + str(identity) + " closed successfully!"
+        if choice == 1:
+            adminMenu.printMessage_outside(output_message)
+        print(output_message)
+    else:
+        output_message = "Account not found !"
+        if choice == 1:
+            adminMenu.printMessage_outside(output_message)
+        print(output_message)
 
 class closeAccount:
     def __init__(self, window=None):
@@ -750,12 +988,13 @@ class closeAccount:
                                  highlightcolor="black", pady="0", text="Back", command=self.back)
         self.Button2.place(relx=0.214, rely=0.712, height=24, width=67)
 
+
     def submit(self, PIN):
         print("Submit pressed.")
         print(customer_accNO, PIN)
         if check_credentials(customer_accNO, PIN, 2, False):
             print("Correct accepted.")
-           # delete_customer_account(customer_accNO, 2)
+            delete_customer_account(customer_accNO, 2)
            
             self.master.withdraw()
             CustomerLogin(Toplevel(self.master))
