@@ -5,7 +5,7 @@ from tkinter import *
 import sqlite3
 
 def is_valid(customer_account_number):
-    return False
+    return True
 
 def check_leap(year):
     return ((int(year) % 4 == 0) and (int(year) % 100 != 0)) or (int(year) % 400 == 0)
@@ -1083,19 +1083,23 @@ class createAdmin:
         self.master.withdraw()
 
     def create_admin_account(self, identity, password, confirm_password):
-        if check_credentials(identity, "DO_NOT_CHECK_ADMIN", 1, False):
-            Error(Toplevel(self.master))
-            Error.setMessage(self, message_shown="ID is unavailable!")
+        if password == confirm_password and len(password) != 0:
+            create_admin_account(identity, password)
+            self.master.withdraw()
         else:
-            if password == confirm_password and len(password) != 0:
-                #create_admin_account(identity, password)
-                self.master.withdraw()
+            Error(Toplevel(self.master))
+            if password != confirm_password:
+                Error.setMessage(self, message_shown="Password Mismatch!")
             else:
-                Error(Toplevel(self.master))
-                if password != confirm_password:
-                    Error.setMessage(self, message_shown="Password Mismatch!")
-                else:
-                    Error.setMessage(self, message_shown="Invalid password!")
+                Error.setMessage(self, message_shown="Invalid password!")
+            
+
+def create_admin_account(identity, password):
+    tuup=(identity, "", "", "", password, 0)
+    insert_employee_data(tuup)
+    adminMenu.printMessage_outside("Admin account created successfully")
+    
+
 
 class deleteAdmin:
     def __init__(self, window=None):
@@ -1143,7 +1147,7 @@ class deleteAdmin:
             Error.setMessage(self, message_shown="Operation Denied!")
             return
         if check_credentials(admin_id, password, 1, True):
-            #delete_admin_account(admin_id)
+            delete_admin_account(admin_id)
             self.master.withdraw()
         else:
             Error(Toplevel(self.master))
@@ -1151,6 +1155,61 @@ class deleteAdmin:
 
     def back(self):
         self.master.withdraw()
+
+def primary_key_exists(employee_id):
+    # Connect to the SQLite database
+    connection = sqlite3.connect('bank.db')  # Replace 'your_database.db' with your database file
+
+    # Create a cursor object to interact with the database
+    cursor = connection.cursor()
+
+    # Execute a SELECT query to check if the primary key exists
+    query = "SELECT * FROM employee WHERE employee_id = ?"
+    cursor.execute(query, (employee_id,))
+
+    # Fetch the result
+    row = cursor.fetchone()
+
+    # Close the cursor and the database connection
+    cursor.close()
+    connection.close()
+
+    # Check if the row with the primary key exists
+    if row is not None:
+        return True  # Primary key exists
+    else:
+        return False  # Primary key does not exist
+
+def delete_employee_by_id(employee_id):
+    try:
+        # Connect to the SQLite database
+        connection = sqlite3.connect('bank.db')  # Replace 'your_database.db' with your database file
+
+        # Create a cursor object to interact with the database
+        cursor = connection.cursor()
+
+        # Execute a DELETE query to remove the row with the specified primary key
+        query = "DELETE FROM employee WHERE employee_id = ?"
+        cursor.execute(query, (employee_id,))
+
+        # Commit the transaction to save the changes
+        connection.commit()
+
+        # Close the cursor and the database connection
+        cursor.close()
+        connection.close()
+
+        print(f"Employee with ID {employee_id} has been deleted.")
+    except sqlite3.Error as e:
+        print(f"Error deleting employee: {e}")
+def delete_admin_account(identity):
+    if(primary_key_exists(identity)):
+        delete_employee_by_id(identity)
+
+    else:
+        adminMenu.printMessage_outside("The admin id does not exist")
+
+        
 
 
 class CloseAccountByAdmin:
@@ -1187,7 +1246,7 @@ class CloseAccountByAdmin:
         self.master.withdraw()
 
     def submit(self, identity):
-        if not is_valid(identity):
+        if  is_valid(identity):###############################################
             delete_customer_account(identity, 1)
         else:
             Error(Toplevel(self.master))
@@ -1314,8 +1373,8 @@ class CustomerLogin:
 
 def check_credentials(identity, password, choice,
                       admin_access):  # checks credentials of admin/customer and returns True or False
-    data=query_row_by_primary_key('CUSTOMER', identity)
-    fata=query_row_by_primary_key_employee('Employee', identity)
+    data=query_row_by_primary_key('CUSTOMER', int(identity))
+    fata=query_row_by_primary_key_employee('EMPLOYEE', int(identity))
     if(choice==1):
         if(fata[0]==int(identity) and int(fata[4])==int(password)):
             return True
@@ -1361,39 +1420,22 @@ def change_PIN(identity, new_PIN):
 
 
 def display_account_summary(identity, choice):  # choice 1 for full summary; choice 2 for only account balance.
-    flag = 0
-    customer_database = open("./database/Customer/customerDatabase.txt")
-    output_message = ""
-    for line in customer_database:
-        if identity == line.replace("\n", ""):
-            if choice == 1:
-                output_message += "Account number : " + line.replace("\n", "") + "\n"
-                customer_database.__next__()  # skipping pin
-                output_message += "Current balance : " + customer_database.__next__().replace("\n", "") + "\n"
-                output_message += "Date of account creation : " + customer_database.__next__().replace("\n", "") + "\n"
-                output_message += "Name of account holder : " + customer_database.__next__().replace("\n", "") + "\n"
-                output_message += "Type of account : " + customer_database.__next__().replace("\n", "") + "\n"
-                output_message += "Date of Birth : " + customer_database.__next__().replace("\n", "") + "\n"
-                output_message += "Mobile number : " + customer_database.__next__().replace("\n", "") + "\n"
-                output_message += "Gender : " + customer_database.__next__().replace("\n", "") + "\n"
-                output_message += "Nationality : " + customer_database.__next__().replace("\n", "") + "\n"
-                output_message += "KYC : " + customer_database.__next__().replace("\n", "") + "\n"
-            else:
-                customer_database.readline()  # skipped pin
-                output_message += "Current balance : " + customer_database.readline().replace("\n", "") + "\n"
-            flag = 1
-            break
+    tup=query_row_by_primary_key('CUSTOMER',identity)
+    tup1=query_row_by_primary_key('ACCOUNT',identity)
+    output=""
+    if(choice==1):
+        output=output+"Customer ID :"+str(tup[0])+"\n"
+        output=output+"First Name: "+str(tup[1])+"\n"
+        output=output+"Middle Name"+str( tup[2])+"\n"
+        output=output+"Last Name"+str(tup[3])+"\n"
+        output=output+"date of birth"+str(tup[4])+"\n"
+        output=output+"mobile number"+str(tup[5])+"\n"
+        output=output+"gender"+str(tup[6])+"\n"
+        output=output+"kyc document submitted"+str(tup[7])+"\n"
 
-        else:
-            for index in range(11):
-                fetched_line = customer_database.readline()
-                if fetched_line is not None:
-                    continue
-                else:
-                    break
-    if flag == 0:
-        print("\n# No account associated with the entered account number exists! #")
-    return output_message
+    elif(choice==2):
+        output=output+tup1[2]+"\n"
+    return output
 
 class customerMenu:
     def __init__(self, window=None):
@@ -1802,9 +1844,9 @@ class checkAccountSummary:
         self.master.withdraw()
 
     def submit(self, identity):
-       # if not is_valid(identity):
-       #     adminMenu.printAccountSummary(identity)
-       # else:
+        if is_valid(identity): ################################3
+            adminMenu.printAccountSummary(identity)
+        else:
             Error(Toplevel(self.master))
             Error.setMessage(self, message_shown="Id doesn't exist!")
             return

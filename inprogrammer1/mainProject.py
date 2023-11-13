@@ -111,14 +111,11 @@ def delete_customer_account(identity, choice):  # choice 1 for admin, choice 2 f
         print(output_message)
 
 def create_admin_account(identity, password):
-    admin_database = open("./database/Admin/adminDatabase.txt", "a")
     admin_id = identity
     admin_password = password
-    append_data("./database/Admin/adminDatabase.txt", admin_id + "\n" + admin_password + "\n" + "*\n")
     output_message = "Admin account created successfully !"
     adminMenu.printMessage_outside(output_message)
     print(output_message)
-    admin_database.close()
 
 
 def delete_admin_account(identity):

@@ -119,7 +119,6 @@ def query_row_by_primary_key(table_name, primary_key_value):
 
     return row
 
-print_table_data('branch')
 
 
 def update_balance(account_number, new_balance):
@@ -147,5 +146,4 @@ def update_balance(account_number, new_balance):
         cursor.close()
         conn.close()
 
-print_table_data('CUSTOMER')
-print_table_data('ACCOUNT')
+
